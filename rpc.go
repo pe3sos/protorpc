@@ -33,14 +33,14 @@ type ServiceDescriptor struct {
 	About       interface{}
 }
 
-func BuildService(sd *ServiceDescriptor, implementation interface{}) (*ServiceImplementor, error) {
+func BuildService(sd *ServiceDescriptor, implementation interface{}) (*RPCDispatcher, error) {
 	requiredType := reflect.TypeOf(sd.HandlerType).Elem()
 	givenType := reflect.TypeOf(implementation)
 
 	if !givenType.Implements(requiredType) {
 		return nil, fmt.Errorf("wsrpc: Server.RegisterService found the handler of type %v that does not satisfy %v", givenType, requiredType)
 	}
-	srv := &ServiceImplementor{
+	srv := &RPCDispatcher{
 		implementation: implementation,
 		methods:        make(map[string]*MethodMap),
 		about:          sd.About,
@@ -52,13 +52,13 @@ func BuildService(sd *ServiceDescriptor, implementation interface{}) (*ServiceIm
 	return srv, nil
 }
 
-type ServiceImplementor struct {
+type RPCDispatcher struct {
 	implementation interface{}
 	methods        map[string]*MethodMap
 	about          interface{}
 }
 
-func (i ServiceImplementor) RPC(methodName string, ctx context.Context, in proto.Message) (proto.Message, error) {
+func (i RPCDispatcher) RPC(methodName string, ctx context.Context, in proto.Message) (proto.Message, error) {
 	implementation, handler, err := i.getRPCHandler(methodName)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (i ServiceImplementor) RPC(methodName string, ctx context.Context, in proto
 	return handler(implementation, ctx, in)
 }
 
-func (i ServiceImplementor) getRPCHandler(methodName string) (interface{}, methodHandler, error) {
+func (i RPCDispatcher) getRPCHandler(methodName string) (interface{}, methodHandler, error) {
 	mm, ok := i.methods[methodName]
 	if !ok {
 		return nil, nil, fmt.Errorf("Unknown method %s", methodName)
