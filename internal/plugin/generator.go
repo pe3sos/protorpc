@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	fmtPackage      = protogen.GoImportPath("fmt")
 	contextPackage  = protogen.GoImportPath("context")
 	protoRpcPackage = protogen.GoImportPath("github.com/zippunov/protorpc")
 	protoPackage    = protogen.GoImportPath("google.golang.org/protobuf/proto")
@@ -220,27 +221,28 @@ func genService(g *protogen.GeneratedFile, f *fileInfo, service *serviceInfo) {
 
 func generateMethodSignature(g *protogen.GeneratedFile, m *protogen.Method) string {
 	ctxIdent := g.QualifiedGoIdent(contextPackage.Ident("Context"))
-	inIdent := m.Input.GoIdent.String()
-	outIdent := m.Output.GoIdent.String()
+	inIdent := g.QualifiedGoIdent(m.Input.GoIdent)
+	outIdent := g.QualifiedGoIdent(m.Output.GoIdent)
 	return m.GoName + "( ctx " + ctxIdent + ", in *" + inIdent + ") " + "(*" + outIdent + ", error)"
 }
 
 func generateServiceMethod(g *protogen.GeneratedFile, serviceName string, method *protogen.Method) string {
 	ctxIdent := g.QualifiedGoIdent(contextPackage.Ident("Context"))
+	errorfIdent := g.QualifiedGoIdent(fmtPackage.Ident("Errorf"))
 	messageIdent := g.QualifiedGoIdent(protoPackage.Ident("Message"))
 	methodName := method.GoName
 	fullName := fmt.Sprintf("%s%sHandler", serviceName, methodName)
 	inType := g.QualifiedGoIdent(method.Input.GoIdent)
 
 	g.P("func ", fullName, "(implementation interface{}, ctx ", ctxIdent, ", payload ", messageIdent, ") (", messageIdent, ", error) {")
-	g.P("in, ok := payload.(", inType, ")")
+	g.P("in, ok := payload.(*", inType, ")")
 	g.P("if !ok {")
-	g.P(`return nill, fmt.Errorf("input is not of type ` + inType + `")`)
+	g.P(`return nil, `, errorfIdent, `("input is not of type *`+inType+`")`)
 	g.P("}")
 
 	g.P("out, error := implementation.(", serviceName, "Service).", methodName, "(ctx, in);")
 	g.P("if error != nil {")
-	g.P("return nill, error")
+	g.P("return nil, error")
 	g.P("}")
 	g.P("return out, nil")
 	g.P("}")
