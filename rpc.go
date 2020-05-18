@@ -41,6 +41,7 @@ func BuildService(sd *ServiceDescriptor, implementation interface{}) (*RPCDispat
 		return nil, fmt.Errorf("wsrpc: Server.RegisterService found the handler of type %v that does not satisfy %v", givenType, requiredType)
 	}
 	srv := &RPCDispatcher{
+		descriptor:     sd,
 		implementation: implementation,
 		methods:        make(map[string]*MethodMap),
 		about:          sd.About,
@@ -53,9 +54,17 @@ func BuildService(sd *ServiceDescriptor, implementation interface{}) (*RPCDispat
 }
 
 type RPCDispatcher struct {
+	descriptor     *ServiceDescriptor
 	implementation interface{}
 	methods        map[string]*MethodMap
 	about          interface{}
+}
+
+func (i RPCDispatcher) Name() string {
+	if i.descriptor == nil {
+		return ""
+	}
+	return i.descriptor.Name
 }
 
 func (i RPCDispatcher) RPC(methodName string, ctx context.Context, in proto.Message) (proto.Message, error) {

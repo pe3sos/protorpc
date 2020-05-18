@@ -54,15 +54,18 @@ func (i ParkingImpl) FreeSlot(ctx context.Context, in *parking.PlateRequest) (*p
 }
 
 func TestRPCDispatcher(t *testing.T) {
-	implementor, err := protorpc.BuildService(&parking.ParkingServiceServiceDescriptor, ParkingImpl{})
+	dispatcher, err := protorpc.BuildService(&parking.ParkingServiceServiceDescriptor, ParkingImpl{})
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	rslt, err := implementor.RPC("CurrentCapacity", context.Background(), &empty.Empty{})
+	rslt, err := dispatcher.RPC("CurrentCapacity", context.Background(), &empty.Empty{})
 	if err != nil {
 		t.Errorf(err.Error())
 	}
 	body, _ := json.Marshal(rslt)
 	t.Log(rslt)
 	t.Log(string(body))
+	if dispatcher.Name() != "parking.ParkingService" {
+		t.Errorf("Expected dispatcher Name be equal to %s", "parking.ParkingService")
+	}
 }
