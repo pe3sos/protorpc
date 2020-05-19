@@ -24,7 +24,7 @@ type MethodMap struct {
 	Handler methodHandler
 }
 
-type methodHandler func(service interface{}, ctx context.Context, payload proto.Message) (proto.Message, error)
+type methodHandler func(service interface{}, ctx context.Context, payload proto.Message) (proto.Message, StatusError)
 
 type ServiceDescriptor struct {
 	Name        string
@@ -67,7 +67,7 @@ func (i RPCDispatcher) Name() string {
 	return i.descriptor.Name
 }
 
-func (i RPCDispatcher) RPC(methodName string, ctx context.Context, in proto.Message) (proto.Message, error) {
+func (i RPCDispatcher) RPC(methodName string, ctx context.Context, in proto.Message) (proto.Message, StatusError) {
 	implementation, handler, err := i.getRPCHandler(methodName)
 	if err != nil {
 		return nil, err
@@ -75,10 +75,13 @@ func (i RPCDispatcher) RPC(methodName string, ctx context.Context, in proto.Mess
 	return handler(implementation, ctx, in)
 }
 
-func (i RPCDispatcher) getRPCHandler(methodName string) (interface{}, methodHandler, error) {
+func (i RPCDispatcher) getRPCHandler(methodName string) (interface{}, methodHandler, StatusError) {
 	mm, ok := i.methods[methodName]
 	if !ok {
-		return nil, nil, fmt.Errorf("Unknown method %s", methodName)
+		return nil, nil, RPCError{
+			Msg:  fmt.Sprintf("Unknown method %s", methodName),
+			Code: BasicError.BadCallPath,
+		}
 	}
 	return i.implementation, mm.Handler, nil
 }

@@ -8,7 +8,6 @@ package parking
 
 import (
 	context "context"
-	fmt "fmt"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	protorpc "github.com/zippunov/protorpc"
 	proto "google.golang.org/protobuf/proto"
@@ -17,19 +16,19 @@ import (
 // WebSocket Server API for ParkingService service
 
 type ParkingServiceService interface {
-	CurrentCapacity(ctx context.Context, in *empty.Empty) (*CapacityResponse, error)
+	CurrentCapacity(ctx context.Context, in *empty.Empty) (*CapacityResponse, protorpc.StatusError)
 
-	TakeSlot(ctx context.Context, in *PlateRequest) (*TakeSlotResponse, error)
+	TakeSlot(ctx context.Context, in *PlateRequest) (*TakeSlotResponse, protorpc.StatusError)
 
-	CurrentBilling(ctx context.Context, in *PlateRequest) (*CurrentBillingResponse, error)
+	CurrentBilling(ctx context.Context, in *PlateRequest) (*CurrentBillingResponse, protorpc.StatusError)
 
-	FreeSlot(ctx context.Context, in *PlateRequest) (*FreeSlotResponse, error)
+	FreeSlot(ctx context.Context, in *PlateRequest) (*FreeSlotResponse, protorpc.StatusError)
 }
 
-func ParkingServiceCurrentCapacityHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, error) {
+func ParkingServiceCurrentCapacityHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, protorpc.StatusError) {
 	in, ok := payload.(*empty.Empty)
 	if !ok {
-		return nil, fmt.Errorf("input is not of type *empty.Empty")
+		return nil, protorpc.RPCError{Code: protorpc.BasicError.InvalidPayload, Msg: "input is not of type *empty.Empty"}
 	}
 	out, error := implementation.(ParkingServiceService).CurrentCapacity(ctx, in)
 	if error != nil {
@@ -38,10 +37,10 @@ func ParkingServiceCurrentCapacityHandler(implementation interface{}, ctx contex
 	return out, nil
 }
 
-func ParkingServiceTakeSlotHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, error) {
+func ParkingServiceTakeSlotHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, protorpc.StatusError) {
 	in, ok := payload.(*PlateRequest)
 	if !ok {
-		return nil, fmt.Errorf("input is not of type *PlateRequest")
+		return nil, protorpc.RPCError{Code: protorpc.BasicError.InvalidPayload, Msg: "input is not of type *PlateRequest"}
 	}
 	out, error := implementation.(ParkingServiceService).TakeSlot(ctx, in)
 	if error != nil {
@@ -50,10 +49,10 @@ func ParkingServiceTakeSlotHandler(implementation interface{}, ctx context.Conte
 	return out, nil
 }
 
-func ParkingServiceCurrentBillingHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, error) {
+func ParkingServiceCurrentBillingHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, protorpc.StatusError) {
 	in, ok := payload.(*PlateRequest)
 	if !ok {
-		return nil, fmt.Errorf("input is not of type *PlateRequest")
+		return nil, protorpc.RPCError{Code: protorpc.BasicError.InvalidPayload, Msg: "input is not of type *PlateRequest"}
 	}
 	out, error := implementation.(ParkingServiceService).CurrentBilling(ctx, in)
 	if error != nil {
@@ -62,10 +61,10 @@ func ParkingServiceCurrentBillingHandler(implementation interface{}, ctx context
 	return out, nil
 }
 
-func ParkingServiceFreeSlotHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, error) {
+func ParkingServiceFreeSlotHandler(implementation interface{}, ctx context.Context, payload proto.Message) (proto.Message, protorpc.StatusError) {
 	in, ok := payload.(*PlateRequest)
 	if !ok {
-		return nil, fmt.Errorf("input is not of type *PlateRequest")
+		return nil, protorpc.RPCError{Code: protorpc.BasicError.InvalidPayload, Msg: "input is not of type *PlateRequest"}
 	}
 	out, error := implementation.(ParkingServiceService).FreeSlot(ctx, in)
 	if error != nil {

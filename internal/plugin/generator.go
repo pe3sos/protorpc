@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	fmtPackage      = protogen.GoImportPath("fmt")
 	contextPackage  = protogen.GoImportPath("context")
 	protoRpcPackage = protogen.GoImportPath("github.com/zippunov/protorpc")
 	protoPackage    = protogen.GoImportPath("google.golang.org/protobuf/proto")
@@ -221,23 +220,29 @@ func genService(g *protogen.GeneratedFile, f *fileInfo, service *serviceInfo) {
 
 func generateMethodSignature(g *protogen.GeneratedFile, m *protogen.Method) string {
 	ctxIdent := g.QualifiedGoIdent(contextPackage.Ident("Context"))
+	errorIdent := g.QualifiedGoIdent(protoRpcPackage.Ident("StatusError"))
 	inIdent := g.QualifiedGoIdent(m.Input.GoIdent)
 	outIdent := g.QualifiedGoIdent(m.Output.GoIdent)
-	return m.GoName + "( ctx " + ctxIdent + ", in *" + inIdent + ") " + "(*" + outIdent + ", error)"
+	return m.GoName + "( ctx " + ctxIdent + ", in *" + inIdent + ") " + "(*" + outIdent + ", " + errorIdent + ")"
 }
 
 func generateServiceMethod(g *protogen.GeneratedFile, serviceName string, method *protogen.Method) string {
 	ctxIdent := g.QualifiedGoIdent(contextPackage.Ident("Context"))
-	errorfIdent := g.QualifiedGoIdent(fmtPackage.Ident("Errorf"))
+	errorIdent := g.QualifiedGoIdent(protoRpcPackage.Ident("StatusError"))
+	rpcErrorIdent := g.QualifiedGoIdent(protoRpcPackage.Ident("RPCError"))
+	invalidPayloadErrorIdent := g.QualifiedGoIdent(protoRpcPackage.Ident("BasicError.InvalidPayload"))
 	messageIdent := g.QualifiedGoIdent(protoPackage.Ident("Message"))
 	methodName := method.GoName
 	fullName := fmt.Sprintf("%s%sHandler", serviceName, methodName)
 	inType := g.QualifiedGoIdent(method.Input.GoIdent)
 
-	g.P("func ", fullName, "(implementation interface{}, ctx ", ctxIdent, ", payload ", messageIdent, ") (", messageIdent, ", error) {")
+	//`("input is not of type *`+inType+`")`
+
+	g.P("func ", fullName, "(implementation interface{}, ctx ", ctxIdent, ", payload ", messageIdent, ") (", messageIdent, ", "+errorIdent+") {")
 	g.P("in, ok := payload.(*", inType, ")")
 	g.P("if !ok {")
-	g.P(`return nil, `, errorfIdent, `("input is not of type *`+inType+`")`)
+	// Generate RPC Error
+	g.P(`return nil, `, rpcErrorIdent, `{Code: `+invalidPayloadErrorIdent+`, Msg: "input is not of type *`+inType+`"}`)
 	g.P("}")
 
 	g.P("out, error := implementation.(", serviceName, "Service).", methodName, "(ctx, in);")
