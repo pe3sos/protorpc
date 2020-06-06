@@ -26,6 +26,8 @@ type MethodMap struct {
 
 type methodHandler func(service interface{}, ctx context.Context, payload proto.Message) (proto.Message, StatusError)
 
+type Middleware func(dispatcher RPCDispatcher, methodName string, ctx context.Context, inMsg proto.Message) (context.Context, StatusError)
+
 type ServiceDescriptor struct {
 	Name        string
 	HandlerType interface{}
@@ -45,6 +47,7 @@ func BuildService(sd *ServiceDescriptor, implementation interface{}) (*RPCDispat
 		implementation: implementation,
 		methods:        make(map[string]*MethodMap),
 		about:          sd.About,
+		middlewares:    []Middleware{},
 	}
 	for i := range sd.Methods {
 		method := &sd.Methods[i]
@@ -58,6 +61,7 @@ type RPCDispatcher struct {
 	implementation interface{}
 	methods        map[string]*MethodMap
 	about          interface{}
+	middlewares    []Middleware
 }
 
 func (i RPCDispatcher) Name() string {
@@ -67,10 +71,21 @@ func (i RPCDispatcher) Name() string {
 	return i.descriptor.Name
 }
 
+func (i *RPCDispatcher) Use(m Middleware) {
+	i.middlewares = append(i.middlewares, m)
+}
+
 func (i RPCDispatcher) RPC(methodName string, ctx context.Context, in proto.Message) (proto.Message, StatusError) {
+	var err StatusError
 	implementation, handler, err := i.getRPCHandler(methodName)
 	if err != nil {
 		return nil, err
+	}
+	for _, m := range i.middlewares {
+		ctx, err = m(i, methodName, ctx, in)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return handler(implementation, ctx, in)
 }
